@@ -4,10 +4,15 @@ on:
   workflow_dispatch:
     inputs:
       runner:
-        description: 'Runner'
+        description: "Runner"
         required: true
         type: string
-        default: 'self-hosted' # ubuntu-latest
+        default: "self-hosted" # ubuntu-latest
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   build:
@@ -16,24 +21,15 @@ jobs:
       - uses: actions/checkout@v5
 
       - name: Set ENV
-        run: | 
+        run: |
           chmod +x *.sh
           echo "VERSION=$(date '+%Y.%m.%d')" >> $GITHUB_ENV
-    
+
       - name: Build
         env:
-            DEBIAN_FRONTEND: noninteractive
+          DEBIAN_FRONTEND: noninteractive
         run: |
           ./build.sh
-
-      - name: Set
-        run: |
-          echo "RECOVERY_ARM64ONLY=$(find android/lineage/out/target/product/virtio_arm64only/recovery.img)" >> $GITHUB_ENV
-          echo "BOOT_ARM64ONLY=$(find android/lineage/out/target/product/virtio_arm64only/boot.img)" >> $GITHUB_ENV
-          echo "UTM_ARM64ONLY=$(find android/lineage/out/target/product/virtio_arm64only/VirtualMachine/UTM/ -name UTM-VM*.zip)" >> $GITHUB_ENV
-          echo "ZIP_ARM64ONLY=$(find android/lineage/out/target/product/virtio_arm64only/ -name *ota.zip)" >> $GITHUB_ENV
-          echo "UTM_X86_64=$(find android/lineage/out/target/product/virtio_x86_64/VirtualMachine/UTM/ -name UTM-VM*.zip)" >> $GITHUB_ENV
-          echo "ZIP_X86_64=$(find android/lineage/out/target/product/virtio_x86_64/ -name *ota.zip)" >> $GITHUB_ENV
 
       - name: Publish
         uses: softprops/action-gh-release@v2
@@ -43,9 +39,21 @@ jobs:
           tag_name: v${{ env.VERSION }}
           files: |
             recovery-userdebug.img
-            ${{ env.RECOVERY_ARM64ONLY }}
-            ${{ env.BOOT_ARM64ONLY }}
-            ${{ env.UTM_ARM64ONLY }}
-            ${{ env.ZIP_ARM64ONLY }}
-            ${{ env.UTM_X86_64 }}
-            ${{ env.ZIP_X86_64 }}
+            android/lineage/out/target/product/virtio_arm64only/recovery.img
+            android/lineage/out/target/product/virtio_arm64only/boot.img
+            android/lineage/out/target/product/virtio_arm64only/VirtualMachine/UTM/UTM-VM*.zip
+            android/lineage/out/target/product/virtio_arm64only/*ota.zip
+            android/lineage/out/target/product/virtio_x86_64/VirtualMachine/UTM/UTM-VM*.zip
+            android/lineage/out/target/product/virtio_x86_64/*ota.zip
+
+      - name: Attest
+        uses: actions/attest@v4
+        with:
+          subject-path: |
+            recovery-userdebug.img
+            android/lineage/out/target/product/virtio_arm64only/recovery.img
+            android/lineage/out/target/product/virtio_arm64only/boot.img
+            android/lineage/out/target/product/virtio_arm64only/VirtualMachine/UTM/UTM-VM*.zip
+            android/lineage/out/target/product/virtio_arm64only/*ota.zip
+            android/lineage/out/target/product/virtio_x86_64/VirtualMachine/UTM/UTM-VM*.zip
+            android/lineage/out/target/product/virtio_x86_64/*ota.zip
