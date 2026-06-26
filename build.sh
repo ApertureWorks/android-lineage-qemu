@@ -16,8 +16,8 @@ chmod a+x bin/repo
 export PATH="$(realpath .)/bin:$PATH"
 cd android/lineage
 export PATH="$(realpath .)/prebuilts/sdk/tools/linux/bin/:$PATH"
-repo init -u https://github.com/LineageOS/android.git -b lineage-23.2 --git-lfs --no-clone-bundle
-repo sync -j 8 # $(nproc)
+repo init -u https://github.com/LineageOS/android.git -b lineage-23.2 --git-lfs --no-clone-bundle --depth 1
+repo sync -c --optimized-fetch --prune --force-sync -j 8 # $(nproc)
 sed -i 's/-$(LINEAGE_BUILDTYPE)/-jqssun/g' vendor/lineage/config/version.mk
 
 source build/envsetup.sh
@@ -28,5 +28,7 @@ echo "CONFIG_RTC_CLASS=y" >> kernel/virt/virtio/arch/arm64/configs/lineageos/vir
 breakfast virtio_arm64only userdebug
 m recoveryimage
 mv out/target/product/virtio_arm64only/recovery.img ../../recovery-userdebug.img
-breakfast virtio_arm64only user # breakfast virtio_arm64only
+breakfast virtio_arm64only user
+m vm-utm-zip otapackage
+breakfast virtio_x86_64 user
 m vm-utm-zip otapackage

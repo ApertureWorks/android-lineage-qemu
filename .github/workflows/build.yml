@@ -28,10 +28,12 @@ jobs:
 
       - name: Set
         run: |
-          echo "UTM=$(find android/lineage/out/target/product/virtio_arm64only/VirtualMachine/UTM/ -name UTM-VM*.zip)" >> $GITHUB_ENV
-          echo "ZIP=$(find android/lineage/out/target/product/virtio_arm64only/ -name *ota.zip)" >> $GITHUB_ENV
-          echo "BOOT=$(find android/lineage/out/target/product/virtio_arm64only/boot.img)" >> $GITHUB_ENV
-          echo "RECOVERY=$(find android/lineage/out/target/product/virtio_arm64only/recovery.img)" >> $GITHUB_ENV
+          echo "RECOVERY_ARM64ONLY=$(find android/lineage/out/target/product/virtio_arm64only/recovery.img)" >> $GITHUB_ENV
+          echo "BOOT_ARM64ONLY=$(find android/lineage/out/target/product/virtio_arm64only/boot.img)" >> $GITHUB_ENV
+          echo "UTM_ARM64ONLY=$(find android/lineage/out/target/product/virtio_arm64only/VirtualMachine/UTM/ -name UTM-VM*.zip)" >> $GITHUB_ENV
+          echo "ZIP_ARM64ONLY=$(find android/lineage/out/target/product/virtio_arm64only/ -name *ota.zip)" >> $GITHUB_ENV
+          echo "UTM_X86_64=$(find android/lineage/out/target/product/virtio_x86_64/VirtualMachine/UTM/ -name UTM-VM*.zip)" >> $GITHUB_ENV
+          echo "ZIP_X86_64=$(find android/lineage/out/target/product/virtio_x86_64/ -name *ota.zip)" >> $GITHUB_ENV
 
       - name: Publish
         uses: softprops/action-gh-release@v2
@@ -41,7 +43,9 @@ jobs:
           tag_name: v${{ env.VERSION }}
           files: |
             recovery-userdebug.img
-            ${{ env.UTM }}
-            ${{ env.ZIP }}
-            ${{ env.BOOT }}
-            ${{ env.RECOVERY }}
+            ${{ env.RECOVERY_ARM64ONLY }}
+            ${{ env.BOOT_ARM64ONLY }}
+            ${{ env.UTM_ARM64ONLY }}
+            ${{ env.ZIP_ARM64ONLY }}
+            ${{ env.UTM_X86_64 }}
+            ${{ env.ZIP_X86_64 }}
