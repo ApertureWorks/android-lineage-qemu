@@ -8,6 +8,8 @@ on:
         required: true
         type: string
         default: "self-hosted" # ubuntu-latest
+  schedule:
+    - cron: "0 0 */16 * *"
 
 permissions:
   contents: write
@@ -15,7 +17,24 @@ permissions:
   attestations: write
 
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.check.outputs.build }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-tags: true
+      - id: check
+        run: |
+          source common.sh
+          if [ "${{ github.event_name }}" = workflow_dispatch ] || ! check_version; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          fi
+
   build:
+    needs: check
+    if: needs.check.outputs.build == 'true'
     runs-on: ${{ github.event_name == 'workflow_dispatch' && inputs.runner || 'self-hosted' }}
     steps:
       - uses: actions/checkout@v5
