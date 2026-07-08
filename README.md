@@ -8,15 +8,13 @@
 - [any macOS/iOS device (via UTM)](https://wiki.lineageos.org/utm-vm-on-apple-silicon-mac), or 
 - [generic libvirt QEMU virtual machines](https://wiki.lineageos.org/libvirt-qemu#create-and-configure-the-virtual-machine-using-virt-manager)
 
-For the latest CI release, see [releases](https://github.com/jqssun/android-lineage-qemu/releases/latest).
+For the latest builds, see [Releases](https://github.com/jqssun/android-lineage-qemu/releases/latest).
 
 <img alt="lineage" src="https://github.com/user-attachments/assets/442b5d82-1b32-4702-b3c1-70c6b033ee58" />
 
 ## Usage
 
-- For first time installs, download `UTM-VM-lineage-*.zip` from releases and unzip.
-
-- To run via `qemu-system` directly, see [Development](#development).
+- For first time installs, download [`UTM-VM-lineage-*.zip`](https://github.com/jqssun/android-lineage-qemu/releases/latest) and unzip. For iPhone, iPad, Mac (Apple silicon), Windows on Arm, and ARM64 Linux, using the `arm64only` build is recommended. For Mac (Intel), Windows PC, x86_64 Linux, or specific cases where UTM is limited to JIT mode, use the `x86_64` build. To run via `qemu-system` directly, see [Development](#development).
 
 - To install an update package, boot into **LineageOS Recovery**, select **Apply update**, then **Apply from ADB**. Use [`lineage_virtio_arm64only-ota.zip`](https://github.com/jqssun/android-lineage-qemu/releases/latest/download/lineage_virtio_arm64only-ota.zip) or [`lineage_virtio_x86_64-ota.zip`](https://github.com/jqssun/android-lineage-qemu/releases/latest/download/lineage_virtio_x86_64-ota.zip) from releases if updating to a new LineageOS build, or use your own update package. On the host, run
 ```shell
@@ -63,20 +61,20 @@ If running `adb` on the same host, no further configuration is needed and the de
 
 ### Bypassing Signature Verification in Recovery
 
-[LineageOS Recovery supports sideloading unsigned update files.](https://review.lineageos.org/c/LineageOS/android_bootable_recovery/+/368223) To allow this, you need to install a non-release version of the recovery image. To put the virtual machine in `fastbootd`, boot into **LineageOS Recovery**, select **Advanced**, then **Enter fastboot**. On the host, download [`recovery-userdebug.img`](https://github.com/jqssun/android-lineage-qemu/releases/latest/download/recovery-userdebug.img) from releases and run
+[LineageOS Recovery supports sideloading unsigned update files.](https://review.lineageos.org/c/LineageOS/android_bootable_recovery/+/368223) To allow this, you need to install a non-release version of the recovery image. To put the virtual machine in `fastbootd`, boot into **LineageOS Recovery**, select **Advanced**, then **Enter fastboot**. On the host, download [`recovery_arm64only-userdebug.img`](https://github.com/jqssun/android-lineage-qemu/releases/latest/download/recovery_arm64only-userdebug.img) from releases and run
 ```shell
-fastboot -s tcp:$HOST_IP flash recovery recovery-userdebug.img
+fastboot -s tcp:$HOST_IP flash recovery recovery_*-userdebug.img
 ```
 
 ### Installing Google Apps
 
 [If you choose to install Google apps](https://wiki.lineageos.org/gapps/#installation), they must be installed immediately after a factory reset (or at first boot) via recovery. Additionally, you need to first [bypass signature verification in recovery](#bypassing-signature-verification-in-recovery).
 
-Follow the [instructions to install an update package](#usage). Use the [Google apps package for the **Mobile**, **ARM64** variant](https://wiki.lineageos.org/gapps/#downloads) on the `arm64` build.
+Follow the [instructions to install an update package](#usage). Use the [Google apps package for the **Mobile**, **ARM64** variant](https://wiki.lineageos.org/gapps/#downloads) on `arm64` builds.
 
 ### Installing Magisk
 
-To install [Magisk](https://github.com/topjohnwu/Magisk/releases/latest), download the [`boot.img`](https://github.com/jqssun/android-lineage-qemu/releases/latest/download/boot.img) from releases and patch it on a running instance of this LineageOS build following the [instructions](https://topjohnwu.github.io/Magisk/install.html#patching-images). Pull the patched image `magisk_patched*.img` from the device, [put the device in `fastbootd`](#bypassing-signature-verification-in-recovery), then run
+To install [Magisk](https://github.com/topjohnwu/Magisk/releases/latest), download [`boot_arm64only.img`](https://github.com/jqssun/android-lineage-qemu/releases/latest/download/boot_arm64only.img) or [`boot_x86_64.img`](https://github.com/jqssun/android-lineage-qemu/releases/latest/download/boot_x86_64.img) from releases, and patch it on a running instance of this LineageOS build following the [instructions](https://topjohnwu.github.io/Magisk/install.html#patching-images). Pull the patched image `magisk_patched*.img` from the device, [put the device in `fastbootd`](#bypassing-signature-verification-in-recovery), then run
 ```shell
 fastboot -s tcp:$HOST_IP flash boot magisk_patched*.img
 ```
@@ -95,12 +93,13 @@ To build these images yourself via CI (e.g. GitHub Actions), fork this repositor
 
 ## Development
 
-To run the virtual machine via `qemu-system-*`, you may use these commands in the directory containing the extracted `LineageOS_on_*.utm` from `UTM-VM-lineage-*.zip`. This assumes you are using `qemu` installed via `Homebrew`, `nix-darwin` (macOS), or your distribution's repositories (Linux).
+To run the virtual machine via `qemu-system-*`, you may use these commands in the directory containing the extracted `LineageOS_on_*.utm` from `UTM-VM-lineage-*.zip`. This assumes you are using `qemu` installed via `Homebrew`, `nix-darwin` (macOS), `Procursus` (iOS), or your distribution's repositories (Linux).
 
-Run the following to set the platform-agnostic `QEMU_OPTS` first, and then apply the platform-specific [`DARWIN_QEMU_OPTS`](#setting-darwin_qemu_opts-for-macos) or [`LINUX_QEMU_OPTS`](#setting-linux_qemu_opts-for-linux) accordingly before starting the virtual machine via `qemu-system-*`.
+Run the following to set the platform-agnostic `QEMU_OPTS` first, and then apply the platform-specific [`DARWIN_QEMU_OPTS`](#running-on-macos-or-ios) or [`LINUX_QEMU_OPTS`](#running-on-linux) accordingly before starting the virtual machine via `qemu-system-*`. Graphical output will appear on the `virtio-gpu-*` device. You can switch to this display by selecting **View** in the menu bar after boot selection.
 
 ```shell
 read -r -d '' QEMU_OPTS << EOM
+    -m 2048 \
     -device virtio-blk-pci,drive=vda,bootindex=0 \
     -device virtio-blk-pci,drive=vdb,bootindex=1 \
     -drive if=pflash,unit=1,file=$(find ./LineageOS_on_*.utm/Data/efi_vars.fd) \
@@ -118,9 +117,9 @@ read -r -d '' QEMU_OPTS << EOM
 EOM
 ```
 
-### Running on macOS
+### Running on macOS or iOS
 
-#### Setting `DARWIN_QEMU_OPTS` for macOS
+Set `DARWIN_QEMU_OPTS` for macOS or iOS:
 ```shell
 VMF_CODE=$(find /opt/homebrew/Cellar/qemu /nix/store/*-qemu-*/share -name "edk2-$(uname -m | sed 's/arm64/aarch64/')-code.fd" 2>/dev/null)
 read -r -d '' DARWIN_QEMU_OPTS << EOM
@@ -135,27 +134,22 @@ read -r -d '' DARWIN_QEMU_OPTS << EOM
     $QEMU_OPTS
 EOM
 ```
-- For faster Hypervisor framework (HVF) acceleration, use:
+- For faster Hypervisor framework (HVF) acceleration on Mac (Apple silicon), use:
 ```shell
-qemu-system-$(uname -m | sed 's/arm64/aarch64/') \
-    -machine virt \
-    -m 2048 \
-    -accel hvf \
-    $DARWIN_QEMU_OPTS
+qemu-system-aarch64 -machine virt -accel hvf $DARWIN_QEMU_OPTS
 ```
 - For slower cross-architecture emulation, use:
 ```shell
-qemu-system-$(uname -m | sed 's/arm64/aarch64/') \
-    -machine virt \
-    -cpu max,pauth-impdef=on -m 2048 \
-    -accel tcg,tb-size=1024,thread=multi \
-    $DARWIN_QEMU_OPTS
+qemu-system-aarch64 -machine virt -cpu max,pauth-impdef=on -accel tcg,tb-size=1024,thread=multi $DARWIN_QEMU_OPTS
+```
+- For faster Hypervisor framework (HVF) acceleration on Mac (Intel), use:
+```shell
+qemu-system-x86_64 -machine q35 -cpu host -accel hvf $DARWIN_QEMU_OPTS
 ```
 
 ### Running on Linux
 
-#### Setting `LINUX_QEMU_OPTS` for Linux
-
+Set `LINUX_QEMU_OPTS` for Linux:
 ```shell
 VMF_CODE=$(find /usr/share/ -name $([ "$(uname -m)" = "x86_64" ] && echo OVMF_CODE_4M || echo AAVMF_CODE).fd 2>/dev/null)
 read -r -d '' LINUX_QEMU_OPTS << EOM
@@ -166,21 +160,17 @@ read -r -d '' LINUX_QEMU_OPTS << EOM
 EOM
 ```
 If your device supports OpenGL acceleration, use `-device virtio-gpu-gl-pci -display sdl,gl=on` instead of `-device virtio-gpu-pci -display sdl,gl=off`.
-- For faster KVM acceleration via Virtualization Host Extensions (VHEs), use:
+- For faster KVM acceleration via Virtualization Host Extensions (VHEs) on ARM64 Linux, use:
 ```shell
-qemu-system-$(uname -m) \
-    -machine virt,gic-version=3,highmem=off \
-    -cpu host -m 2048 \
-    -accel kvm \
-    $LINUX_QEMU_OPTS
+qemu-system-aarch64 -machine virt,gic-version=3,highmem=off -cpu host -accel kvm $LINUX_QEMU_OPTS
 ```
 - For slower cross-architecture emulation, use:
 ```shell
-qemu-system-$(uname -m) \
-    -machine virt \
-    -cpu max,pauth-impdef=on -m 2048 \
-    -accel tcg,tb-size=1024,thread=multi \
-    $LINUX_QEMU_OPTS
+qemu-system-aarch64 -machine virt -cpu max,pauth-impdef=on -accel tcg,tb-size=1024,thread=multi $LINUX_QEMU_OPTS
+```
+- For faster KVM acceleration on x86_64 Linux, use:
+```shell
+qemu-system-x86_64 -machine q35 -cpu host -accel kvm $LINUX_QEMU_OPTS
 ```
 
 ## Credits

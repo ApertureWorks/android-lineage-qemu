@@ -1,4 +1,5 @@
 #!/bin/bash
+
 export DEBIAN_FRONTEND=noninteractive
 sudo apt update
 sudo apt install -y sudo git android-sdk-platform-tools python-is-python3 python3-yaml qemu-utils # libncurses5
@@ -9,6 +10,7 @@ git config --global user.email "github-actions[bot]@users.noreply.github.com"
 git config --global trailer.changeid.key "Change-Id"
 git config --global color.ui true
 git lfs install
+
 unset REPO_URL
 mkdir -p bin android/lineage
 curl https://storage.googleapis.com/git-repo-downloads/repo > bin/repo
@@ -22,10 +24,21 @@ sed -i 's/-$(LINEAGE_BUILDTYPE)/-jqssun/g' vendor/lineage/config/version.mk
 
 source build/envsetup.sh
 export AB_OTA_UPDATER=false ROOMSERVICE_BRANCHES="lineage-23.1 lineage-23.0"
-breakfast virtio_arm64only userdebug
+
+breakfast virtio_x86_64 userdebug
 m recoveryimage
-mv out/target/product/virtio_arm64only/recovery.img ../../recovery-userdebug.img
-breakfast virtio_arm64only user
-m vm-utm-zip otapackage
+mv out/target/product/virtio_x86_64/recovery.img ../../recovery_x86_64-userdebug.img
+
 breakfast virtio_x86_64 user
 m vm-utm-zip otapackage
+mv out/target/product/virtio_x86_64/boot.img ../../boot_x86_64.img
+mv out/target/product/virtio_x86_64/recovery.img ../../recovery_x86_64.img
+
+breakfast virtio_arm64only userdebug
+m recoveryimage
+mv out/target/product/virtio_arm64only/recovery.img ../../recovery_arm64only-userdebug.img
+
+breakfast virtio_arm64only user
+m vm-utm-zip otapackage
+mv out/target/product/virtio_arm64only/boot.img ../../boot_arm64only.img
+mv out/target/product/virtio_arm64only/recovery.img ../../recovery_arm64only.img
