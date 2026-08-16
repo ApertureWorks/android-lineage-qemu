@@ -177,22 +177,34 @@ echo "[3.5/4] Auditing and applying 16KB page alignment patch to vulkan.virtio.s
 VK_SO_TMP=$(mktemp /tmp/vulkan_virtio.XXXXXX.so)
 if $DEBUGFS -R "dump ${PREFIX}/lib64/hw/vulkan.virtio.so $VK_SO_TMP" "$TARGET_IMG" 2>/dev/null && [ -s "$VK_SO_TMP" ]; then
     python3 -c '
-import sys
+import sys, hashlib
 so_file = sys.argv[1]
 target = bytes.fromhex("e2 17 00 f9 e2 03 00 91 01 06 b8 72 e8 63 00 29 a8 fe 3f 91 08 cd 74 92 ff ff 01 a9 ff a3 00 a9")
 replacement = bytes.fromhex("ff 0b 02 a9 e2 03 00 91 01 06 b8 72 e8 63 00 29 a8 06 00 d1 08 11 40 91 08 c5 72 92 ff a3 00 a9")
+
 with open(so_file, "rb") as f:
     data = bytearray(f.read())
-if target in data:
+
+if len(data) < 64 or data[:4] != b"\x7fELF" or data[18:20] != b"\xb7\x00":
+    print("    [!] Error: File is not a valid ARM64 ELF shared object.")
+    sys.exit(1)
+
+target_count = data.count(target)
+repl_count = data.count(replacement)
+
+if target_count == 1:
     pos = data.index(target)
     data[pos:pos+32] = replacement
     with open(so_file, "wb") as f:
         f.write(data)
-    print(f"    [+] Successfully patched vulkan.virtio.so at offset {hex(pos)} for 16KB page alignment")
-elif replacement in data:
-    print("    [=] vulkan.virtio.so is already 16KB-page-aligned.")
+    print(f"    [+] Successfully patched vulkan.virtio.so at offset {hex(pos)} (SHA256: {hashlib.sha256(data).hexdigest()[:12]}...)")
+elif repl_count >= 1:
+    print("    [=] vulkan.virtio.so is already 16KB-page-aligned (verified).")
+elif target_count > 1:
+    print(f"    [!] Error: Target sequence matched {target_count} times in binary (ambiguous patch site). Aborting.")
+    sys.exit(1)
 else:
-    print("    [!] Target pattern not found in vulkan.virtio.so (different driver version or architecture).")
+    print("    [!] Warning: Target sequence not found in vulkan.virtio.so (different Mesa build). Skipping.")
 ' "$VK_SO_TMP"
     $DEBUGFS -w -R "rm ${PREFIX}/lib64/hw/vulkan.virtio.so" "$TARGET_IMG" >/dev/null 2>&1 || true
     $DEBUGFS -w -R "write $VK_SO_TMP ${PREFIX}/lib64/hw/vulkan.virtio.so" "$TARGET_IMG" >/dev/null 2>&1 || true
